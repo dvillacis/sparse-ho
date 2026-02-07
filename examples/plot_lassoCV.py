@@ -115,7 +115,7 @@ fig, ax = plt.subplots(figsize=(5, 3))
 ax.plot(alphas / alphas[0], objs, color=current_palette[0])
 ax.plot(
     alphas / alphas[0], objs,
-    'bo', label='0-th order method (grid search)',
+    'o', label='0-th order method (grid search)',
     color=current_palette[1])
 ax.scatter(
     p_alphas_grad, objs_grad,
@@ -127,4 +127,4 @@ ax.set_xscale("log")
 plt.tick_params(width=5)
 plt.legend()
 plt.tight_layout()
-plt.show(block=False)
+plt.show(block=True)

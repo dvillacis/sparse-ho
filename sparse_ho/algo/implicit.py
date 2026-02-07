@@ -138,7 +138,7 @@ def compute_beta_grad_implicit(
         sol0 = None  # TODO add warm start for SVM and SVR
     sol = cg(
         mat_to_inv, - model.generalized_supp(X, v, log_alpha),
-        x0=sol0, tol=tol_lin_sys, maxiter=max_iter_lin_sys)
+        x0=sol0, rtol=tol_lin_sys, maxiter=max_iter_lin_sys)
     sol_lin_sys = sol[0]
 
     # 3 compute the gradient

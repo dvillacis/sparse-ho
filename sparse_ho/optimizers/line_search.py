@@ -36,6 +36,11 @@ class LineSearch(BaseOptimizer):
     def _grad_search(
             self, _get_val_grad, proj_hyperparam, log_alpha0, monitor):
 
+        if monitor is not None and not hasattr(monitor, "ls_iters"):
+            monitor.ls_iters = []
+        if monitor is not None and not hasattr(monitor, "step_sizes"):
+            monitor.step_sizes = []
+
         is_multiparam = isinstance(log_alpha0, np.ndarray)
         if is_multiparam:
             log_alphak = log_alpha0.copy()
@@ -55,6 +60,7 @@ class LineSearch(BaseOptimizer):
             seq_tol = self.tol * np.ones(self.n_outer)
 
         for i in range(self.n_outer):
+            ls_iters = 0
             tol = seq_tol[i]
             try:
                 old_tol = seq_tol[i - 1]
@@ -106,6 +112,7 @@ class LineSearch(BaseOptimizer):
                 else:
                     log_alphak = old_log_alphak
                 print('!!step size rejected!!', value_outer, value_outer_old)
+                ls_iters += 1
                 value_outer, grad_outer = _get_val_grad(
                     log_alphak, tol=tol, monitor=monitor)
 
@@ -117,11 +124,17 @@ class LineSearch(BaseOptimizer):
             log_alphak = proj_hyperparam(log_alphak)
             value_outer_old = value_outer
 
+            if monitor is not None:
+                monitor.ls_iters.append(ls_iters)
+                monitor.step_sizes.append(step_size)
+
             if self.verbose:
                 print(
                     "Iteration %i/%i || " % (i+1, self.n_outer) +
                     "Value outer criterion: %.2e || " % value_outer +
-                    "norm grad %.2e" % norm(grad_outer))
+                    "norm grad %.2e || " % norm(grad_outer) +
+                    "step %.2e || " % step_size +
+                    "ls iters %i" % ls_iters)
             if monitor.times[-1] > self.t_max:
                 break
         return log_alphak, value_outer, grad_outer

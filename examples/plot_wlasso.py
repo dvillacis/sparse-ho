@@ -112,5 +112,5 @@ df.plot.bar(rot=0)
 plt.xlabel("Estimator")
 plt.ylabel("Mean squared error")
 plt.tight_layout()
-plt.show(block=False)
+plt.show(block=True)
 ##############################################################################

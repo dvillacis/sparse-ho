@@ -22,8 +22,11 @@ from mne.viz import plot_sparse_source_estimates
 from mne.datasets import sample
 
 from mne.inverse_sparse.mxne_inverse import (
-    _prepare_gain, is_fixed_orient, _reapply_source_weighting,
-    _make_sparse_stc)
+    _prepare_gain,
+    is_fixed_orient,
+    _reapply_source_weighting,
+    _make_sparse_stc,
+)
 from celer import Lasso as celer_Lasso
 from sparse_ho.utils import Monitor
 from sparse_ho.models import WeightedLasso, Lasso
@@ -34,8 +37,8 @@ from sparse_ho.optimizers import GradientDescent
 
 
 def apply_solver(
-        evoked, forward, noise_cov, loose=0.2, depth=0.8, p_alpha0=0.7,
-        model_name="wlasso"):
+    evoked, forward, noise_cov, loose=0.2, depth=0.8, p_alpha0=0.7, model_name="wlasso"
+):
     """Call a custom solver on evoked data.
 
     This function does all the necessary computation:
@@ -80,11 +83,19 @@ def apply_solver(
 
     # Handle depth weighting and whitening (here is no weights)
     forward, gain, gain_info, whitener, source_weighting, _ = _prepare_gain(
-        forward, evoked.info, noise_cov, pca=False, depth=depth,
-        loose=0, weights=None, weights_min=None, rank=None)
+        forward,
+        evoked.info,
+        noise_cov,
+        pca=False,
+        depth=depth,
+        loose=0,
+        weights=None,
+        weights_min=None,
+        rank=None,
+    )
 
     # Select channels of interest
-    sel = [all_ch_names.index(name) for name in gain_info['ch_names']]
+    sel = [all_ch_names.index(name) for name in gain_info["ch_names"]]
     M = evoked.data[sel]
 
     # Whiten data
@@ -93,22 +104,22 @@ def apply_solver(
     n_orient = 1 if is_fixed_orient(forward) else 3
 
     X, active_set, monitor = solver(
-        M, gain, n_orient, evoked.nave, p_alpha0=p_alpha0,
-        model_name=model_name)
+        M, gain, n_orient, evoked.nave, p_alpha0=p_alpha0, model_name=model_name
+    )
     X = _reapply_source_weighting(X, source_weighting, active_set)
 
-    stc = _make_sparse_stc(X, active_set, forward, tmin=evoked.times[0],
-                           tstep=1. / evoked.info['sfreq'])
+    stc = _make_sparse_stc(
+        X, active_set, forward, tmin=evoked.times[0], tstep=1.0 / evoked.info["sfreq"]
+    )
 
     return stc, monitor
 
 
 ###############################################################################
 # Define your solver
-def solver(
-        y_train, X_train, n_orient, nave, p_alpha0=0.7, model_name="wlasso"):
+def solver(y_train, X_train, n_orient, nave, p_alpha0=0.7, model_name="wlasso"):
     n_times = y_train.shape[1]
-    idx_max = np.argmax(np.sum(y_train ** 2, axis=0))
+    idx_max = np.argmax(np.sum(y_train**2, axis=0))
     y_train = y_train[:, idx_max]
 
     n_samples, n_features = X_train.shape
@@ -119,8 +130,8 @@ def solver(
     alpha0 = p_alpha0 * alpha_max
 
     estimator = celer_Lasso(
-        fit_intercept=False, max_iter=100, warm_start=True,
-        tol=1e-3)
+        fit_intercept=False, max_iter=100, warm_start=True, tol=1e-3
+    )
     if model_name == "wlasso":
         alpha0 = alpha0 * np.ones(n_features)
         model = WeightedLasso(estimator=estimator)
@@ -131,11 +142,9 @@ def solver(
     sigma = 1 / np.sqrt(nave)
     criterion = FiniteDiffMonteCarloSure(sigma=sigma)
     algo = Implicit()
-    optimizer = GradientDescent(
-        n_outer=4, tol=1e-7, verbose=True, p_grad_norm=1.9)
+    optimizer = GradientDescent(n_outer=4, tol=1e-7, verbose=True, p_grad_norm=1.9)
     monitor = Monitor()
-    grad_search(algo, criterion, model, optimizer,
-                X_train, y_train, alpha0, monitor)
+    grad_search(algo, criterion, model, optimizer, X_train, y_train, alpha0, monitor)
 
     X = criterion.dense0[:, np.newaxis] * np.ones((1, n_times))
     active_set = criterion.mask0
@@ -145,10 +154,10 @@ def solver(
 
 
 data_path = sample.data_path()
-fwd_fname = data_path + '/MEG/sample/sample_audvis-meg-eeg-oct-6-fwd.fif'
-ave_fname = data_path + '/MEG/sample/sample_audvis-ave.fif'
-cov_fname = data_path + '/MEG/sample/sample_audvis-shrunk-cov.fif'
-condition = 'Left Auditory'
+fwd_fname = data_path / "MEG" / "sample" / "sample_audvis-meg-eeg-oct-6-fwd.fif"
+ave_fname = data_path / "MEG" / "sample" / "sample_audvis-ave.fif"
+cov_fname = data_path / "MEG" / "sample" / "sample_audvis-shrunk-cov.fif"
+condition = "Left Auditory"
 
 
 # %%
@@ -164,20 +173,16 @@ evoked = evoked.pick_types(eeg=False, meg=True)
 # Handling forward solution
 forward = mne.read_forward_solution(fwd_fname)
 
-loose, depth = 0., .8  # corresponds to free orientation
+loose, depth = 0.0, 0.8  # corresponds to free orientation
 
 # %%
 # Run estimation with Lasso
-stc = apply_solver(
-    evoked, forward, noise_cov, loose, depth, model_name="lasso")[0]
+stc = apply_solver(evoked, forward, noise_cov, loose, depth, model_name="lasso")[0]
 # Plot glass brain
-plot_sparse_source_estimates(
-    forward['src'], stc, bgcolor=(1, 1, 1), opacity=0.1)
+plot_sparse_source_estimates(forward["src"], stc, bgcolor=(1, 1, 1), opacity=0.1)
 
 # %%
 # Run estimation with Weighted Lasso
-stc = apply_solver(
-    evoked, forward, noise_cov, loose, depth, model_name="wlasso")[0]
+stc = apply_solver(evoked, forward, noise_cov, loose, depth, model_name="wlasso")[0]
 # Plot glass brain
-plot_sparse_source_estimates(
-    forward['src'], stc, bgcolor=(1, 1, 1), opacity=0.1)
+plot_sparse_source_estimates(forward["src"], stc, bgcolor=(1, 1, 1), opacity=0.1)
